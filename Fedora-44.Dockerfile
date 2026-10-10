@@ -12,7 +12,6 @@ ARG ENABLE_kfgj_ARG
 ARG ENABLE_zip_ARG
 ARG ENABLE_docker_ARG
 ARG ENABLE_srf_ARG
-ARG ENABLE_tmoe_ARG
 ARG DISPLAY_BACKEND
 ARG ENABLE_8gen2_wayland_ARG
 ARG ENABLE_systemd257_ARG
@@ -81,12 +80,6 @@ RUN chmod +x /usr/local/sbin/install-anland-* /usr/local/sbin/install-mesa /usr/
     if [ "$ENABLE_docker_ARG" = "true" ]; then \
         dnf install -y --setopt=install_weak_deps=False \
         moby-engine docker-compose docker-cli; \
-    fi && \
-    ## 集成tmoe (可选)
-    if [ "$ENABLE_tmoe_ARG" = "true" ]; then \
-        git clone --depth=1 https://github.com/2moe/tmoe-linux.git /usr/local/etc/tmoe-linux/git && \
-        ln -sf /usr/local/etc/tmoe-linux/git/debian.sh /usr/local/bin/tmoe && \
-        chmod -R 755 /usr/local/etc/tmoe-linux; \
     fi && \
     dnf upgrade -y && \
     dnf clean all && \
@@ -224,6 +217,14 @@ getent group droidspaces-gpu >/dev/null || groupadd -g 786 -r droidspaces-gpu
 
 usermod -a -G aid_inet,aid_net_raw,input,video,tty,droidspaces-gpu root || true
 usermod -a -G aid_inet,aid_net_raw,input,video,tty,wheel,droidspaces-gpu ${USERNAME} || true
+
+# --- PipeWire 实时调度权限：修复 Plasma/KWin 反复重启 ---
+getent group pipewire >/dev/null || groupadd -r pipewire
+usermod -a -G pipewire ${USERNAME} || true
+mkdir -p /etc/systemd/system.conf.d /etc/systemd/user.conf.d
+printf '[Manager]\nDefaultLimitRTPRIO=70\nDefaultLimitNICE=-19\nDefaultLimitRTTIME=infinity\n' \
+    > /etc/systemd/system.conf.d/50-pipewire-rt.conf
+cp /etc/systemd/system.conf.d/50-pipewire-rt.conf /etc/systemd/user.conf.d/50-pipewire-rt.conf
 
 # 确保未来通过 useradd 创建的新用户也会进入附加组 (Fedora 通过 /etc/default/useradd 处理)
 if [ -f /etc/default/useradd ]; then

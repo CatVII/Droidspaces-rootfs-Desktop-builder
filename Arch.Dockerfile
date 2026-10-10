@@ -14,7 +14,6 @@ ARG ENABLE_kfgj_ARG
 ARG ENABLE_zip_ARG
 ARG ENABLE_docker_ARG
 ARG ENABLE_srf_ARG
-ARG ENABLE_tmoe_ARG
 ARG ENABLE_systemd257_ARG
 ARG USERNAME
 ARG ANLAND_RELEASE_REPOSITORY=Goldzxcbug/droidspaces-package
@@ -26,6 +25,7 @@ COPY scripts/systemd257.sh /usr/local/sbin/systemd257
 COPY scripts/tui/install-anland-kde.sh /usr/local/sbin/install-anland-kde
 COPY scripts/tui/install-anland-gnome.sh /usr/local/sbin/install-anland-gnome
 COPY scripts/tui/install-anland-next.sh /usr/local/sbin/install-anland-next
+COPY scripts/tui/install-anland-niri.sh /usr/local/sbin/install-anland-niri
 COPY scripts/install-anland-desktop.sh /usr/local/sbin/install-anland-desktop
 COPY scripts/tui/install-mesa.sh /usr/local/sbin/install-mesa
 COPY scripts/tui/install-hangover-wine.sh /usr/local/sbin/install-hangover-wine
@@ -78,18 +78,13 @@ RUN chmod +x /usr/local/sbin/install-anland-* /usr/local/sbin/install-mesa /usr/
     if [ "$ENABLE_docker_ARG" = "true" ]; then \
         pacman -S --noconfirm --needed \
         docker docker-compose; \
-    fi && \
-    ## 集成tmoe (可选)
-    if [ "$ENABLE_tmoe_ARG" = "true" ]; then \
-        git clone --depth=1 https://github.com/2moe/tmoe-linux.git /usr/local/etc/tmoe-linux/git && \
-        ln -sf /usr/local/etc/tmoe-linux/git/debian.sh /usr/local/bin/tmoe && \
-        chmod -R 755 /usr/local/etc/tmoe-linux; \
     fi
 
 # 启用 Anland 时从固定滚动 GitHub Release 安装对应桌面的 ARM64 包。
 RUN if [ "$DISPLAY_BACKEND" = "anland-wayland" ]; then \
         echo "--> [enabled] Installing Anland $DESKTOP packages (${ANLAND_PACKAGE_REVISION})..." && \
         ANLAND_RELEASE_REPOSITORY="$ANLAND_RELEASE_REPOSITORY" \
+        ANLAND_NIRI_RELEASE_REPOSITORY="$ANLAND_RELEASE_REPOSITORY" \
         /usr/local/sbin/install-anland-desktop "$DESKTOP" --1 && \
         echo "--> [enabled] Anland $DESKTOP support installed"; \
     fi
